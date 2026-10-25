@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>แผนเที่ยว เชียงใหม่-เชียงดาว 12-15 พ.ย. 69 🗺️💰</title>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+    body {
+      background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+      padding: 20px;
+    }
+    h1 { text-align: center; color: #1e293b; font-size: 1.25rem; margin-bottom: 14px; }
+
+    .main-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+    .main-tab {
+      flex: 1; padding: 8px 10px; border-radius: 20px; border: none;
+      background: #fef3c7; color: #92400e; cursor: pointer; font-size: 0.85rem;
+    }
+    .main-tab.active { background: #f59e0b; color: white; }
+    .day-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .day-tab {
+      padding: 6px 10px; border-radius: 16px; border: none;
+      background: #e2e8f0; color: #475569; cursor: pointer; font-size: 0.8rem;
+    }
+    .day-tab.active { background: #2563eb; color: white; }
+
+    .form-card { background: #f8fafc; border-radius: 12px; padding: 14px; margin-bottom: 14px; border: 1px solid #e2e8f0; }
+    .form-card.edit-mode { background: #fffbeb; border-color: #f59e0b; }
+    .summary-card { background: #fffbeb; border-radius:  12px; padding: 14px; border: 1px solid #fde68a; }
+
+    .row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+    input, select, button { padding: 8px 10px; border-radius: 7px; border: 1px solid #cbd5e1; font-size: 0.85rem; }
+    input:focus, select:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+    .btn-primary { background: #2563eb; color: white; border: none; cursor: pointer; font-weight: 500; }
+    .btn-secondary { background: #f59e0b; color: white; border: none; cursor: pointer; }
+    .btn-success { background: #22c55e; color: white; border: none; cursor: pointer; }
+    .btn-danger { background: #ef4444; color: white; border: none; cursor: pointer; padding: 4px 8px; font-size: 0.7rem; border-radius: 5px; }
+    .btn-sm { padding: 4px 8px; font-size: 0.75rem; border-radius: 5px; }
+    .btn-scan { background: #8b5cf6; color: white; border: none; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+
+    .trip-item {
+      background: #f8fafc; border-radius: 10px; padding: 12px; margin-bottom: 10px;
+      border-left: 4px solid #2563eb; transition: all 0.2s;
+    }
+    .trip-item.checked { opacity: 0.7; border-left-color: #22c55e; }
+    .trip-item.checked .place-text { text-decoration: line-through; color: #64748b; }
+    .item-header { display: flex; align-items: flex-start; gap: 8px; }
+    .check-box { width: 18px; height: 18px; cursor: pointer; accent-color: #22c55e; margin-top: 2px; }
+    .item-body { flex: 1; }
+    .time-text { font-size: 0.78rem; color: #64748b; }
+    .place-text { font-weight: 600; color: #1e293b; font-size: 0.9rem; }
+    .note-text { font-size: 0.78rem; color: #64748b; margin-top: 2px; }
+    .map-link {
+      display: inline-block; margin-top: 4px;
+      background: #4285f4; color: white; padding: 3px 8px; border-radius: 5px;
+      font-size: 0.72rem; text-decoration: none;
+    }
+    .item-actions { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .add-expense-toggle { margin-top: 6px; }
+    .expense-form-inline {
+      margin-top: 8px; padding: 10px; background: #f0fdf4; border-radius: 8px; border: 1px solid #bbf7d0;
+      display: none;
+    }
+    .expense-form-inline.show { display: block; }
+    .expense-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #dcfce7; color: #166534; padding: 3px 7px; border-radius: 12px; font-size: 0.7rem;
+      margin: 2px 4px 2px 0;
+    }
+
+    .modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 999;
+      padding: 20px;
+    }
+    .modal.show { display: flex; }
+    .modal-content { background: white; border-radius: 12px; padding: 16px; max-width: 450px; width: 100%; }
+    #cameraView { width: 100%; border-radius: 8px; background: #000; min-height: 250px; object-fit: cover; }
+    .scan-result { margin-top: 10px; padding: 8px; background: #f0fdf4; border-radius: 6px; font-size: 0.9rem; display: none; }
+    .scan-result.show { display: block; }
+    .loading { color: #64748b; font-size: 0.85rem; padding: 8px; display: none; }
+    .loading.show { display: block; }
+
+    .summary-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #fcd34d; font-size: 0.9rem; }
+    .summary-row.total { font-weight: 700; font-size: 1rem; color: #b45309; border-bottom: none; padding-top: 8px; }
+
+    .empty { text-align: center; padding: 20px; color: #94a3b8; font-size: 0.85rem; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🗺️ แผนเที่ยว เชียงใหม่ - เชียงดาว</h1>
+
+    <div class="main-tabs">
+      <button class="main-tab active" onclick="switchMainTab('plan')">📋 แผนเที่ยว</button>
+      <button class="main-tab" onclick="switchMainTab('summary')">💰 สรุปรายจ่าย</button>
+    </div>
+
+    <div id="planView">
+      <div class="day-tabs" id="dayTabs"></div>
+
+      <div class="form-card" id="formCard">
+        <h3 style="font-size:0.95rem; margin-bottom:8px;" id="formTitle">➕ เพิ่มสถานที่</h3>
+        <div class="row">
+          <input type="time" id="edit-time">
+          <input type="text" id="edit-place" placeholder="สถานที่/กิจกรรม">
+        </div>
+        <div class="row">
+          <input type="text" id="edit-note" placeholder="หมายเหตุ/อาหาร">
+          <input type="text" id="edit-map" placeholder="ค้นหาใน Maps">
+        </div>
+        <div class="row">
+          <button class="btn-primary" onclick="saveItem()">💾 บันทึก</button>
+          <button class="btn-secondary" onclick="cancelEdit()" id="cancelBtn" style="display:none;">❌ ยกเลิก</button>
+        </div>
+      </div>
+
+      <div id="tripList"></div>
+    </div>
+
+    <div id="summaryView" class="hidden">
+      <div class="summary-card">
+        <h3 style="font-size:0.95rem; margin-bottom:10px;">📊 สรุปรายจ่ายรายวัน</h3>
+        <div id="dailySummary"></div>
+      </div>
+      <div class="summary-card">
+        <h3 style="font-size:0.95rem; margin-bottom:10px;">🏆 สรุปรวมทั้งทริป</h3>
+        <div class="summary-row"><span>จำนวนวัน</span><span id="totalDays">0 วัน</span></div>
+        <div class="summary-row"><span>รวมรายการจ่าย</span><span id="totalCount">0 รายการ</span></div>
+        <div class="summary-row"><span>รวมตามหมวดหมู่</span><span id="totalByCat">-</span></div>
+        <div class="summary-row total"><span>💵 รวมทั้งสิ้น</span><span id="grandTotal">0 บาท</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="scanModal">
+    <div class="modal-content">
+      <h4 style="margin-bottom:10px; text-align:center;">📷 สแกนตัวเลขจากใบเสร็จ</h4>
+      <video id="cameraView" autoplay playsinline></video>
+      <div class="loading" id="scanLoading">⏳ กำลังประมวลผล...</div>
+      <div class="scan-result" id="scanResult">
+        <strong>ตัวเลขที่อ่านได้:</strong>
+        <span id="foundNumber" style="color:#16a34a; font-size:1.1rem; font-weight:bold;"></span>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <button class="btn-scan" onclick="captureAndScan()">📸 ถ่ายและอ่าน</button>
+        <button class="btn-success" onclick="useScannedNumber()">✅ ใช้ตัวเลขนี้</button>
+        <button class="btn-danger" onclick="closeModal()">❌ ปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========== แผนเที่ยวจากกระดาษของคุณ ==========
+    const initialData = {
+      "วันที่ 12 พ.ย.": {
+        items: [
+          { time: "03:00", place: "ออกเดินทางจากอยุธยา", note: "", map: "อยุธยา", checked: false, expenses: [] },
+          { time: "05:00-12:30", place: "เดินทางระหว่างทาง", note: "อาหารเช้าระหว่างทาง", map: "", checked: false, expenses: [] },
+          { time: "05:00-05:15", place: "พักรถ #1 ปั๊ม ปตท.หรือเทสโก้", note: "", map: "", checked: false, expenses: [] },
+          { time: "07:15-07:30", place: "พักรถ #2 น้ำโซ-ลำพูน", note: "อาหารเช้า", map: "", checked: false, expenses: [] },
+          { time: "09:30-09:45", place: "พักรถ #3 ปตท.ลำปาง-งาว", note: "", map: "", checked: false, expenses: [] },
+          { time: "11:45-12:00", place: "พักรถ #4 ปตท.แม่ทะ", note: "อาหารกลางวัน", map: "", checked: false, expenses: [] },
+          { time: "13:30-14:30", place: "วัดดอยตุ่ม (ลำปาง)", note: "แวะชมวัดและกาแฟ", map: "วัดดอยตุ่ม ลำปาง", checked: false, expenses: [] },
+          { time: "15:00-16:30", place: "ถึง Hug Nimman เชียงใหม่", note: "เช็คอินที่พัก", map: "Hug Nimman เชียงใหม่", checked: false, expenses: [] },
+          { time: "17:00-17:50", place: "ตลาดนัดจันทร์เกษม", note: "", map: "ตลาดนัดจันทร์เกษม เชียงใหม่", checked: false, expenses: [] },
+          { time: "18:10-19:30", place: "เดินเล่นถนนคนเดิน/ตลาดสวนดอก", note: "มื้อเย็น", map: "ถนนคนเดินเชียงใหม่", checked: false, expenses: [] },
+          { time: "19:40-20:10", place: "ชมดาวที่สวนดอก", note: "", map: "สวนดอก เชียงใหม่", checked: false, expenses: [] }
+        ]
+      },
+      "วันที่ 13 พ.ย.": {
+        items: [
+          { time: "06:30", place: "ออกจาก Hug Nimman", note: "อาหารเช้าที่ที่พัก", map: "Hug Nimman เชียงใหม่", checked: false, expenses: [] },
+          { time: "07:15-08:15", place: "วัดพระบรมธาตุดอยสุเทพ", note: "ขึ้นรถราง/เดินขึ้นบันได", map: "วัดพระบรมธาตุดอยสุเทพ", checked: false, expenses: [] },
+          { time: "08:35-09:15", place: "วัดพระธาตุจอมจัง", note: "", map: "วัดพระธาตุจอมจัง เชียงใหม่", checked: false, expenses: [] },
+          { time: "09:45-10:30", place: "วัดช่องดารา", note: "", map: "วัดช่องดารา เชียงใหม่", checked: false, expenses: [] },
+          { time: "10:35-11:20", place: "บ้านก้านตอง", note: "กาแฟ", map: "บ้านก้านตอง เชียงใหม่", checked: false, expenses: [] },
+          { time: "12:05-13:00", place: "อาหารกลางวัน", note: "", map: "", checked: false, expenses: [] },
+          { time: "12:45-13:15", place: "วัดกู่เต้า", note: "", map: "วัดกู่เต้า เชียงใหม่", checked: false, expenses: [] },
+          { time: "13:35-14:20", place: "วัดเชียงมั่น", note: "", map: "วัดเชียงมั่น เชียงใหม่", checked: false, expenses: [] },
+          { time: "14:30-15:15", place: "วัดพระสิงห์วรมหาวิหาร", note: "", map: "วัดพระสิงห์ เชียงใหม่", checked: false, expenses: [] },
+          { time: "15:30-16:00", place: "เดินเล่นเมืองเก่า", note: "", map: "เมืองเก่าเชียงใหม่", checked: false, expenses: [] },
+          { time: "16:10-16:40", place: "วัดโลกโมฬี", note: "", map: "วัดโลกโมฬี เชียงใหม่", checked: false, expenses: [] },
+          { time: "17:00", place: "กลับ Hug Nimman", note: "พักผ่อน", map: "Hug Nimman เชียงใหม่", checked: false, expenses: [] },
+          { time: "18:00", place: "ออกไปเดินเล่น", note: "", map: "", checked: false, expenses: [] }
+        ]
+      },
+      "วันที่ 14 พ.ย.": {
+        items: [
+          { time: "07:30", place: "ออกจาก Hug Nimman", note: "", map: "Hug Nimman เชียงใหม่", checked: false, expenses: [] },
+          { time: "07:50-08:25", place: "วัดพุทธบาทตากอ", note: "", map: "วัดพุทธบาทตากอ เชียงใหม่", checked: false, expenses: [] },
+          { time: "09:00-09:35", place: "วัดพุทธอุทยาน", note: "", map: "วัดพุทธอุทยาน เชียงดาว", checked: false, expenses: [] },
+          { time: "10:15-11:30", place: "ถ้ำผาแดง", note: "", map: "ถ้ำผาแดง เชียงดาว", checked: false, expenses: [] },
+          { time: "11:30-12:15", place: "อาหารกลางวันร้านไก่ย่างเชียงดาว", note: "", map: "ร้านไก่ย่างเชียงดาว", checked: false, expenses: [] },
+          { time: "13:30-14:20", place: "น้ำตกแม่แจ๋ม", note: "", map: "น้ำตกแม่แจ๋ม เชียงดาว", checked: false, expenses: [] },
+          { time: "15:20-15:40", place: "จุดชมวิวดอยเชียงดาว", note: "", map: "ดอยเชียงดาว", checked: false, expenses: [] },
+          { time: "15:45-16:30", place: "วัดถ้ำผาปล่อง", note: "", map: "วัดถ้ำผาปล่อง เชียงดาว", checked: false, expenses: [] },
+          { time: "16:30-17:00", place: "ถึง Chiang Dao Mountain View", note: "เช็คอินที่พัก", map: "Chiang Dao Mountain View", checked: false, expenses: [] },
+          { time: "18:00", place: "อาหารเย็นที่พัก", note: "", map: "", checked: false, expenses: [] }
+        ]
+      },
+      "วันที่ 15 พ.ย.": {
+        items: [
+          { time: "06:30-08:00", place: "ชมวิว/อาหารเช้า", note: "", map: "Chiang Dao Mountain View", checked: false, expenses: [] },
+          { time: "08:30-09:00", place: "เก็บสัมภาระ/เช็คเอาท์", note: "", map: "", checked: false, expenses: [] },
+          { time: "11:00-12:00", place: "วัดพระธาตุผาซ่อนแก้ว", note: "", map: "วัดพระธาตุผาซ่อนแก้ว", checked: false, expenses: [] },
+          { time: "13:00-14:00", place: "วัดพุทธบาทสี่รอย", note: "", map: "วัดพุทธบาทสี่รอย", checked: false, expenses: [] },
+          { time: "14:30", place: "เริ่มเดินทางกลับ", note: "", map: "", checked: false, expenses: [] },
+          { time: "16:00-16:15", place: "พักรถ #1 ปตท.งาว-ลำปาง", note: "", map: "", checked: false, expenses: [] },
+          { time: "18:15-18:30", place: "พักรถ #2 ปตท.ลำปาง", note: "", map: "", checked: false, expenses: [] },
+          { time: "20:30-20:45", place: "พักรถ #3 ปตท.นครสวรรค์", note: "", map: "", checked: false, expenses: [] },
+          { time: "22:45-23:00", place: "พักรถ #4 ปตท.สิงห์บุรี", note: "", map: "", checked: false, expenses: [] }
+        ]
+      }
+    };
+
+    let data = JSON.parse(localStorage.getItem('tripData') || JSON.stringify(initialData));
+    let currentDay = Object.keys(data)[0];
+    let editIndex = null;
+    let currentMainTab = 'plan';
+    let activeExpenseItemIndex = null;
+    let stream = null;
+    let lastScannedNumber = '';
+
+    function switchMainTab(tab) {
+      currentMainTab = tab;
+      document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('planView').classList.toggle('hidden', tab !== 'plan');
+      document.getElementById('summaryView').classList.toggle('hidden', tab !== 'summary');
+      if (tab === 'summary') renderSummary();
+    }
+
+    function renderDays() {
+      const tabs = document.getElementById('dayTabs');
+      tabs.innerHTML = '';
+      Object.keys(data).forEach(day => {
+        const btn = document.createElement('button');
+        btn.className = `day-tab ${day === currentDay ? 'active' : ''}`;
+        btn.textContent = day;
+        btn.onclick = () => { currentDay = day; renderList(); };
+        tabs.appendChild(btn);
+      });
+    }
+
+    function renderList() {
+      const list = document.getElementById('tripList');
+      const items = data[currentDay].items;
+
+      if (!items || items.length === 0) {
+        list.innerHTML = '<div class="empty">ยังไม่มีรายการสถานที่ ✨</div>';
+        return;
+      }
+
+      list.innerHTML = items.map((item, idx) => {
+        const expenseTags = item.expenses.map(e =>
+          `<span class="expense-tag">${e.category} ${Number(e.amount).toLocaleString()} ฿</span>`
+        ).join('');
+
+        return `
+        <div class="trip-item ${item.checked ? 'checked' : ''}" id="item-${idx}">
+          <div class="item-header">
+            <input type="checkbox" class="check-box" ${item.checked ? 'checked' : ''}
+              onchange="toggleCheck(${idx})">
+            <div class="item-body">
+              <div class="time-text">🕒 ${item.time || 'ไม่ระบุเวลา'}</div>
+              <div class="place-text">📍 ${item.place}</div>
+              <div class="note-text">📝 ${item.note || '-'}</div>
+              ${item.map ? `<a class="map-link" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.map)}" target="_blank">🗺️ เปิดแผนที่</a>` : ''}
+              ${expenseTags ? `<div style="margin-top:4px;">${expenseTags}</div>` : ''}
+
+              <div class="add-expense-toggle">
+                <button class="btn-secondary btn-sm" onclick="toggleExpenseForm(${idx})">➕ บันทึกรายจ่าย</button>
+              </div>
+
+              <div class="expense-form-inline" id="exp-form-${idx}">
+                <div class="row">
+                  <select id="cat-${idx}">
+                    <option value="อาหาร">🍽️ อาหาร</option>
+                    <option value="ค่าเดินทาง">🚗 ค่าเดินทาง</option>
+                    <option value="ค่าเข้าสถานที่">🎟️ ค่าเข้าสถานที่</option>
+                    <option value="ของที่ระลึก">🎁 ของที่ระลึก</option>
+                    <option value="อื่นๆ">📦 อื่นๆ</option>
+                  </select>
+                  <input type="text" id="desc-${idx}" placeholder="รายละเอียด">
+                </div>
+                <div class="row">
+                  <input type="number" id="amt-${idx}" placeholder="จำนวน (บาท)" style="flex:1;">
+                  <button class="btn-scan btn-sm" onclick="openScanner(${idx})">📷 สแกน</button>
+                  <button class="btn-success btn-sm" onclick="saveExpense(${idx})">✅ บันทึก</button>
+                </div>
+                <div style="margin-top:6px;">
+                  ${item.expenses.length > 0 ? '<div style="font-size:0.75rem; color:#64748b; margin-bottom:4px;">รายจ่าย:</div>' : ''}
+                  ${item.expenses.map((e, ei) => `
+                    <div style="font-size:0.78rem; padding:2px 0; display:flex; justify-content:space-between; border-bottom:1px dotted #eee;">
+                      <span>${e.category} ${e.desc ? '· ' + e.desc : ''}</span>
+                      <span style="color:#16a34a; font-weight:500;">${Number(e.amount).toLocaleString()} ฿ <button class="btn-danger" style="padding:1px 4px; font-size:0.6rem;" onclick="deleteExpense(${idx}, ${ei})">✕</button></span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <div class="item-actions">
+                <button class="btn-secondary btn-sm" onclick="editItem(${idx})">✏️ แก้ไข</button>
+                <button class="btn-danger" onclick="deleteItem(${idx})">🗑️ ลบ</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        `;
+      }).join('');
+    }
+
+    function toggleExpenseForm(idx) {
+      document.getElementById(`exp-form-${idx}`).classList.toggle('show');
+    }
+
+    async function openScanner(itemIdx) {
+      activeExpenseItemIndex = itemIdx;
+      lastScannedNumber = '';
+      document.getElementById('scanResult').classList.remove('show');
+      document.getElementById('scanLoading').classList.remove('show');
+      document.getElementById('scanModal').classList.add('show');
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+        document.getElementById('cameraView').srcObject = stream;
+      } catch (err) {
+        alert('ไม่สามารถเปิดกล้องได้\n- ต้องใช้ HTTPS หรือ localhost\n- และอนุญาตสิทธิ์กล้องในเบราว์เซอร์');
+        closeModal();
+      }
+    }
+
+    async function captureAndScan() {
+      const video = document.getElementById('cameraView');
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0);
+
+      document.getElementById('scanLoading').classList.add('show');
+      document.getElementById('scanResult').classList.remove('show');
+
+      try {
+        const result = await Tesseract.recognize(canvas, 'tha+eng', {
+          logger: m => console.log(m)
+        });
+
+        const text = result.data.text;
+        const numMatch = text.match(/[\d,]+\.?\d*/g);
+        if (numMatch && numMatch.length > 0) {
+          let bestNum = numMatch.sort((a,b) => b.length - a.length)[0];
+          bestNum = bestNum.replace(/,/g, '');
+          lastScannedNumber = bestNum;
+          document.getElementById('foundNumber').textContent = `${bestNum} บาท`;
+          document.getElementById('scanResult').classList.add('show');
+        } else {
+          document.getElementById('foundNumber').textContent = 'ไม่พบตัวเลข ลองถ่ายใหม่';
+          document.getElementById('scanResult').classList.add('show');
+        }
+      } catch (e) {
+        alert('เกิดข้อผิดพลาดในการอ่านภาพ');
+      }
+      document.getElementById('scanLoading').classList.remove('show');
+    }
+
+    function useScannedNumber() {
+      if (lastScannedNumber && activeExpenseItemIndex !== null) {
+        document.getElementById(`amt-${activeExpenseItemIndex}`).value = lastScannedNumber;
+      }
+      closeModal();
+    }
+
+    function closeModal() {
+      if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+      document.getElementById('scanModal').classList.remove('show');
+      activeExpenseItemIndex = null;
+    }
+
+    function saveExpense(idx) {
+      const category = document.getElementById(`cat-${idx}`).value;
+      const desc = document.getElementById(`desc-${idx}`).value.trim();
+      const amt = parseFloat(document.getElementById(`amt-${idx}`).value);
+
+      if (!amt || amt <= 0) { alert('กรุณาระบุจำนวนเงิน หรือสแกนใบเสร็จ'); return; }
+
+      data[currentDay].items[idx].expenses.push({
+        category: category,
+        desc: desc,
+        amount: amt,
+        time: new Date().toLocaleTimeString('th-TH')
+      });
+
+      saveData();
+      document.getElementById(`desc-${idx}`).value = '';
+      document.getElementById(`amt-${idx}`).value = '';
+      renderList();
+    }
+
+    function deleteExpense(itemIdx, expIdx) {
+      if (!confirm('ลบรายการนี้ใช่ไหม?')) return;
+      data[currentDay].items[itemIdx].expenses.splice(expIdx, 1);
+      saveData();
+      renderList();
+    }
+
+    function saveItem() {
+      const time = document.getElementById('edit-time').value;
+      const place = document.getElementById('edit-place').value.trim();
+      const note = document.getElementById('edit-note').value.trim();
+      const map = document.getElementById('edit-map').value.trim();
+
+      if (!place) { alert('กรุณากรอกชื่อสถานที่'); return; }
+
+      const newItem = { time, place, note, map, checked: false, expenses: [] };
+
+      if (editIndex !== null) {
+        newItem.expenses = data[currentDay].items[editIndex].expenses;
+        data[currentDay].items[editIndex] = newItem;
+        editIndex = null;
+        document.getElementById('formTitle').textContent = '➕ เพิ่มสถานที่';
+        document.getElementById('cancelBtn').style.display = 'none';
+        document.getElementById('formCard').classList.remove('edit-mode');
+      } else {
+        data[currentDay].items.push(newItem);
+      }
+
+      saveData();
+      clearTripForm();
+      renderList();
+    }
+
+    function editItem(index) {
+      editIndex = index;
+      const item = data[currentDay].items[index];
+      document.getElementById('edit-time').value = item.time || '';
+      document.getElementById('edit-place').value = item.place;
+      document.getElementById('edit-note').value = item.note;
+      document.getElementById('edit-map').value = item.map || '';
+      document.getElementById('formTitle').textContent = '✏️ แก้ไขสถานที่';
+      document.getElementById('cancelBtn').style.display = 'inline-block';
+      document.getElementById('formCard').classList.add('edit-mode');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelEdit() {
+      editIndex = null;
+      document.getElementById('formTitle').textContent = '➕ เพิ่มสถานที่';
+      document.getElementById('cancelBtn').style.display = 'none';
+      document.getElementById('formCard').classList.remove('edit-mode');
+      clearTripForm();
+    }
+
+    function clearTripForm() {
+      document.getElementById('edit-time').value = '';
+      document.getElementById('edit-place').value = '';
+      document.getElementById('edit-note').value = '';
+      document.getElementById('edit-map').value = '';
+    }
+
+    function deleteItem(index) {
+      if (!confirm('ลบรายการนี้และรายจ่ายทั้งหมดในสถานที่นี้ใช่ไหม?')) return;
+      data[currentDay].items.splice(index, 1);
+      saveData();
+      renderList();
+    }
+
+    function toggleCheck(index) {
+      data[currentDay].items[index].checked = !data[currentDay].items[index].checked;
+      saveData();
+      renderList();
+    }
+
+    function renderSummary() {
+      const dailyDiv = document.getElementById('dailySummary');
+      let grandTotal = 0;
+      let totalCount = 0;
+      const catTotal = {};
+
+      dailyDiv.innerHTML = Object.keys(data).map(day => {
+        const items = data[day].items;
+        let dayTotal = 0;
+        let dayExpCount = 0;
+        let dayExpHtml = '';
+
+        items.forEach(item => {
+          item.expenses.forEach(ex => {
+            dayTotal += Number(ex.amount);
+            dayExpCount++;
+            if (!catTotal[ex.category]) catTotal[ex.category] = 0;
+            catTotal[ex.category] += Number(ex.amount);
+            dayExpHtml += `
+              <div style="font-size:0.78rem; padding:2px 0; color:#525252;">
+                <span style="background:#e0f2fe; padding:1px 5px; border-radius:3px; font-size:0.7rem; margin-right:4px;">${ex.category}</span>
+                ${item.place} ${ex.desc ? '· ' + ex.desc : ''}
+                <span style="float:right; color:#16a34a;">${Number(ex.amount).toLocaleString()} ฿</span>
+              </div>
+            `;
+          });
+        });
+
+        grandTotal += dayTotal;
+        totalCount += dayExpCount;
+
+        return `
+          <div style="background:#fff; border-radius:8px; padding:10px; margin-bottom:8px;">
+            <div class="summary-row" style="border-bottom-color:#eee;">
+              <strong>📅 ${day}</strong>
+              <strong style="color:#b45309;">${dayTotal.toLocaleString()} บาท</strong>
+            </div>
+            ${dayExpHtml || '<div style="color:#94a3b8; font-size:0.8rem; padding:4px 0;">- ไม่มีรายจ่าย -</div>'}
+          </div>
+        `;
+      }).join('');
+
+      const catHtml = Object.keys(catTotal).map(c =>
+        `${c}: ${catTotal[c].toLocaleString()} ฿`
+      ).join(' | ') || '-';
+
+      document.getElementById('totalDays').textContent = `${Object.keys(data).length} วัน`;
+      document.getElementById('totalCount').textContent = `${totalCount} รายการ`;
+      document.getElementById('totalByCat').textContent = catHtml;
+      document.getElementById('grandTotal').textContent = `${grandTotal.toLocaleString()} บาท`;
+    }
+
+    function saveData() {
+      localStorage.setItem('tripData', JSON.stringify(data));
+    }
+
+    renderDays();
+    renderList();
+  </script>
+</body>
+</html>
